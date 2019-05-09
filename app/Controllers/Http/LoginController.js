@@ -3,47 +3,33 @@
 const User = use('App/Models/User')
 
 class LoginController {
-  async redirectToProvider ({ ally, params }) {
-    await ally.driver(params.provider).redirect()
+  async redirect ({ ally }) {
+    await ally.driver('facebook').redirect()
   }
 
-  async handleProviderCallback ({ params, ally, auth, response }) {
-    const provider = params.provider
+  async callback ({ ally, auth }) {
     try {
-      const userData = await ally.driver(params.provider).getUser()
+      const fbUser = await ally.driver('facebook').getUser()
 
-      const authUser = await User.query()
-        .where({
-          provider: provider,
-          provider_id: userData.getId()
-        })
-        .first()
-      if (!(authUser === null)) {
-        await auth.loginViaId(authUser.id)
-        return response.redirect('/')
+      // user details to be saved
+      const userDetails = {
+        email: fbUser.getEmail(),
+        token: fbUser.getAccessToken(),
+        login_source: 'facebook'
       }
 
-      const user = new User()
-      user.name = userData.getName()
-      user.username = userData.getNickname()
-      user.email = userData.getEmail()
-      user.provider_id = userData.getId()
-      user.avatar = userData.getAvatar()
-      user.provider = provider
+      // search for existing user
+      const whereClause = {
+        email: fbUser.getEmail()
+      }
 
-      await user.save()
+      const user = await User.findOrCreate(whereClause, userDetails)
+      await auth.login(user)
 
-      await auth.loginViaId(user.id)
-      return response.redirect('/')
-    } catch (e) {
-      console.log(e)
-      response.redirect('/auth/' + provider)
+      return 'Logged in'
+    } catch (error) {
+      return 'Unable to authenticate. Try again later'
     }
-  }
-
-  async logout ({ auth, response }) {
-    await auth.logout()
-    response.redirect('/')
   }
 }
 

@@ -17,11 +17,11 @@
 const Route = use('Route')
 
 Route.on('/').render('welcome')
-Route.get('/logout', 'LoginController.logout').as('logout')
-Route.get('/auth/:provider', 'LoginController.redirectToProvider').as(
+Route.get('/auth/:provider', 'AuthController.redirectToProvider').as(
   'social.login'
 )
 Route.get(
   '/authenticated/:provider',
-  'LoginController.handleProviderCallback'
+  'AuthController.handleProviderCallback'
 ).as('social.login.callback')
+Route.get('/logout', 'AuthController.logout').as('logout')
